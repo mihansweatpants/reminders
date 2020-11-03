@@ -1,6 +1,7 @@
 package com.mihansweatpants.reminders.service;
 
 import com.mihansweatpants.reminders.domain.Reminder;
+import com.mihansweatpants.reminders.util.ReminderDateTimeUtils;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
@@ -10,9 +11,13 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
+import java.util.regex.Pattern;
 
 @Service
 public class ReminderBotService {
+
+    private static final String REMIND_COMMAND = "напомни";
+    private static final Pattern REMIND_COMMAND_PATTERN = Pattern.compile(REMIND_COMMAND, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private final TelegramBot telegramBot;
     private final ReminderService reminderService;
@@ -35,9 +40,17 @@ public class ReminderBotService {
         long chatId = update.message().chat().id();
         String messageText = update.message().text();
 
-        reminderService.createReminder(messageText, chatId, LocalDateTime.now().plusSeconds(10));
+        if (REMIND_COMMAND_PATTERN.matcher(messageText).find()) {
+            var reminderDate = ReminderDateTimeUtils.parseDate(messageText);
+            var now = LocalDateTime.now();
 
-        telegramBot.execute(new SendMessage(chatId, "ок"));
+            if (reminderDate.isBefore(now)) {
+                telegramBot.execute(new SendMessage(chatId, "Попробуй другое время. Это уже прошло."));
+            } else {
+                reminderService.createReminder(messageText, chatId, reminderDate);
+                telegramBot.execute(new SendMessage(chatId, "ок"));
+            }
+        }
     }
 
     public void sendReminder(Reminder reminder) {
