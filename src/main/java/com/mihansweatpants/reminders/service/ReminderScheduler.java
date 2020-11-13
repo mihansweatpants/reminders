@@ -1,6 +1,5 @@
 package com.mihansweatpants.reminders.service;
 
-import com.pengrad.telegrambot.TelegramBot;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 

@@ -2,6 +2,7 @@ package com.mihansweatpants.reminders.service;
 
 import com.mihansweatpants.reminders.domain.Reminder;
 import com.mihansweatpants.reminders.repository.ReminderRepository;
+import com.mihansweatpants.reminders.util.UTCTimeUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,7 +27,7 @@ public class ReminderService {
     }
 
     public List<Reminder> getScheduledReminders() {
-        return reminderRepository.findAllByIsCompleteFalseAndScheduledAtBefore(LocalDateTime.now());
+        return reminderRepository.findAllByIsCompleteFalseAndScheduledAtBefore(UTCTimeUtils.now());
     }
 
     public void completeReminder(Reminder reminder) {

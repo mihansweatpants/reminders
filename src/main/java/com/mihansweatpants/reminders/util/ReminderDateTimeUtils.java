@@ -1,5 +1,7 @@
 package com.mihansweatpants.reminders.util;
 
+import com.mihansweatpants.reminders.exception.ReminderDateParsingException;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -35,7 +37,7 @@ public class ReminderDateTimeUtils {
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
     );
 
-    public static LocalDateTime parseDate(String text) {
+    public static LocalDateTime parseDate(String text) throws ReminderDateParsingException {
         Matcher timeFullMatcher = TIME_FULL_PATTERN.matcher(text);
         Matcher timeShortMatcher = TIME_SHORT_PATTERN.matcher(text);
 
@@ -47,11 +49,11 @@ public class ReminderDateTimeUtils {
             String hourString = timeShortMatcher.group(0).split(" ")[1];
             time = LocalTime.of(Integer.parseInt(hourString), 0);
         } else {
-            throw new RuntimeException("Could not parse time");
+            throw new ReminderDateParsingException("Could not parse time");
         }
 
         LocalDate date = null;
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = UTCTimeUtils.now().toLocalDate();
         Matcher dayAndMonthMatcher = DAY_AND_MONTH_NAME_PATTERN.matcher(text);
         if (dayAndMonthMatcher.find()) {
             int day = Integer.parseInt(dayAndMonthMatcher.group(1));
@@ -65,9 +67,9 @@ public class ReminderDateTimeUtils {
 
             date = dateToSet;
         } else if (TOMORROW_PATTERN.matcher(text).find()) {
-            date = LocalDate.now().plusDays(1);
+            date = UTCTimeUtils.now().toLocalDate().plusDays(1);
         } else if (DAY_AFTER_TOMORROW_PATTERN.matcher(text).find()) {
-            date = LocalDate.now().plusDays(2);
+            date = UTCTimeUtils.now().toLocalDate().plusDays(2);
         } else {
             date = currentDate;
         }
