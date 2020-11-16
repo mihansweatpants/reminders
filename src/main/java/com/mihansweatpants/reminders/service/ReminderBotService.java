@@ -75,7 +75,7 @@ public class ReminderBotService {
                             (chatSettings) -> {
                                 try {
                                     var configuredTimeZoneId = chatSettings.getTimezoneId();
-                                    var scheduledDate = UTCTimeUtils.toUTC(ReminderDateTimeUtils.parseDate(text).atZone(configuredTimeZoneId));
+                                    var scheduledDate = UTCTimeUtils.toUTC(ReminderDateTimeUtils.parseDate(text, configuredTimeZoneId));
 
                                     if (scheduledDate.isBefore(UTCTimeUtils.now())) {
                                         telegramBot.execute(new SendMessage(chatId, "Попробуй другое время. Это уже прошло."));

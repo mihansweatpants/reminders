@@ -2,10 +2,7 @@ package com.mihansweatpants.reminders.util;
 
 import com.mihansweatpants.reminders.exception.ReminderDateParsingException;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Month;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -37,14 +34,14 @@ public class ReminderDateTimeUtils {
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
     );
 
-    public static LocalDateTime parseDate(String text) throws ReminderDateParsingException {
+    public static ZonedDateTime parseDate(String text, ZoneId zoneId) throws ReminderDateParsingException {
         Matcher timeFullMatcher = TIME_FULL_PATTERN.matcher(text);
         Matcher timeShortMatcher = TIME_SHORT_PATTERN.matcher(text);
 
         LocalTime time;
         if (timeFullMatcher.find()) {
             String timeString = timeFullMatcher.group(0).split(" ")[1];
-            time = LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm"));
+            time = LocalTime.parse(timeString, DateTimeFormatter.ofPattern("H:mm"));
         } else if (timeShortMatcher.find()) {
             String hourString = timeShortMatcher.group(0).split(" ")[1];
             time = LocalTime.of(Integer.parseInt(hourString), 0);
@@ -53,7 +50,7 @@ public class ReminderDateTimeUtils {
         }
 
         LocalDate date = null;
-        LocalDate currentDate = UTCTimeUtils.now().toLocalDate();
+        LocalDate currentDate = LocalDate.now(zoneId);
         Matcher dayAndMonthMatcher = DAY_AND_MONTH_NAME_PATTERN.matcher(text);
         if (dayAndMonthMatcher.find()) {
             int day = Integer.parseInt(dayAndMonthMatcher.group(1));
@@ -67,13 +64,13 @@ public class ReminderDateTimeUtils {
 
             date = dateToSet;
         } else if (TOMORROW_PATTERN.matcher(text).find()) {
-            date = UTCTimeUtils.now().toLocalDate().plusDays(1);
+            date = currentDate.plusDays(1);
         } else if (DAY_AFTER_TOMORROW_PATTERN.matcher(text).find()) {
-            date = UTCTimeUtils.now().toLocalDate().plusDays(2);
+            date = currentDate.plusDays(2);
         } else {
             date = currentDate;
         }
 
-        return LocalDateTime.of(date, time);
+        return ZonedDateTime.of(date, time, zoneId);
     }
 }
