@@ -7,6 +7,7 @@ import com.mihansweatpants.reminders.util.ReminderDateTimeUtils;
 import com.mihansweatpants.reminders.util.UTCTimeUtils;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
+import com.pengrad.telegrambot.model.Location;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
@@ -50,25 +51,31 @@ public class ReminderBotService {
     }
 
     private void processUpdate(Update update) {
-        LOGGER.info("Processing update {}", update);
-        Optional.ofNullable(update.message().location()).ifPresent(__ -> processLocationMessage(update));
-        Optional.ofNullable(update.message().text()).ifPresent(__ -> processTextMessage(update));
+        try {
+            LOGGER.info("Processing update {}", update);
+
+            Optional.ofNullable(update.message()).ifPresent(message -> {
+                Optional.ofNullable(message.location()).ifPresent(location -> processLocationMessage(message.chat().id(), location));
+                Optional.ofNullable(message.text()).ifPresent(text -> processTextMessage(message.chat().id(), text));
+            });
+
+            Optional.ofNullable(update.editedMessage()).ifPresent(message -> {
+                Optional.ofNullable(message.text()).ifPresent(text -> processTextMessage(message.chat().id(), text));
+            });
+        }
+        catch (Exception e) {
+            LOGGER.error("Could not process update {}", update);
+        }
     }
 
-    private void processLocationMessage(Update update) {
-        var chatId = update.message().chat().id();
-        var location = update.message().location();
-
+    private void processLocationMessage(long chatId, Location location) {
         var timezoneInfo = timeZoneDBClient.getTimeZoneByLocation(location.latitude(), location.longitude());
         chatSettingsService.createChatSettings(chatId, ZoneId.of(timezoneInfo.getZoneName()));
 
         telegramBot.execute(new SendMessage(chatId, String.format("Выбран часовой пояс %s. Теперь можно создавать напоминания", timezoneInfo.getZoneName())));
     }
 
-    private void processTextMessage(Update update) {
-        var chatId = update.message().chat().id();
-        var text = update.message().text();
-
+    private void processTextMessage(long chatId, String text) {
         if (REMIND_COMMAND_PATTERN.matcher(text).find()) {
             chatSettingsService.getChatSettings(chatId)
                     .ifPresentOrElse(
@@ -85,10 +92,10 @@ public class ReminderBotService {
                                     }
                                 } catch (ReminderDateParsingException e) {
                                     telegramBot.execute(new SendMessage(chatId, "Не получилось распарсить время. Попробуй еще раз в формате \"напомни [затра|послезавтра|dd (января|февраля|...)] в hh[:MM] \""));
-                                    LOGGER.error("Error trying to parse reminder date from message {} {}", update, e);
+                                    LOGGER.error("Error trying to parse reminder date from message \"{}\" {}", text, e);
                                 } catch (Exception e) {
                                     telegramBot.execute(new SendMessage(chatId, "Что-то где-то пошло не так :("));
-                                    LOGGER.error("Error trying to create reminder from message {} {}", update, e);
+                                    LOGGER.error("Error trying to create reminder from message \"{}\" {}", text, e);
                                 }
                             },
                             () -> telegramBot.execute(new SendMessage(chatId, "Пришли свою геолокацию (не работает на десктопе ¯\\_(ツ)_/¯)")));
